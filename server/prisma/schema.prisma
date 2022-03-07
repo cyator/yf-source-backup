@@ -1,0 +1,107 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model addresses {
+  address_id             Int                 @id @default(autoincrement())
+  customer_id            Int
+  first_name             String              @db.VarChar(50)
+  last_name              String              @db.VarChar(50)
+  mobile_phone_number    String              @db.VarChar(50)
+  alternate_phone_number String?             @db.VarChar(50)
+  county                 String              @db.VarChar(50)
+  town                   String              @db.VarChar(50)
+  creation_date          DateTime            @default(dbgenerated("CURRENT_DATE")) @db.Date
+  delivery_address       String              @db.VarChar(255)
+  customers              customers           @relation(fields: [customer_id], references: [customer_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_addresses_customers")
+  default_addresses      default_addresses[]
+}
+
+model cart {
+  cart_id       Int      @id @default(autoincrement())
+  order_id      Int
+  product_id    Int
+  quantity      Int
+  creation_date DateTime @default(dbgenerated("CURRENT_DATE")) @db.Date
+  orders        orders   @relation(fields: [order_id], references: [order_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cart_orders")
+  products      products @relation(fields: [product_id], references: [product_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_cart_products")
+}
+
+model customers {
+  customer_id       Int                @id @default(autoincrement())
+  username          String             @unique @db.VarChar(50)
+  email             String             @unique @db.VarChar(100)
+  password          String             @db.VarChar(255)
+  creation_date     DateTime           @default(dbgenerated("CURRENT_DATE")) @db.Date
+  addresses         addresses[]
+  default_addresses default_addresses?
+  favorites         favorites[]
+  orders            orders[]
+}
+
+model default_addresses {
+  default_address_id Int       @id @default(autoincrement())
+  customer_id        Int       @unique
+  address_id         Int
+  creation_date      DateTime  @default(dbgenerated("CURRENT_DATE")) @db.Date
+  addresses          addresses @relation(fields: [address_id], references: [address_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_default_addresses_addresses")
+  customers          customers @relation(fields: [customer_id], references: [customer_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_default_addresses_customers")
+}
+
+model favorites {
+  favorite_id   Int       @id @default(autoincrement())
+  customer_id   Int
+  product_id    Int       @unique
+  creation_date DateTime  @default(dbgenerated("CURRENT_DATE")) @db.Date
+  customers     customers @relation(fields: [customer_id], references: [customer_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_favorites_customers")
+  products      products  @relation(fields: [product_id], references: [product_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_favorites_products")
+}
+
+model orders {
+  order_id       Int       @id @default(autoincrement())
+  customer_id    Int
+  payment_id     Int
+  creation_date  DateTime  @default(dbgenerated("CURRENT_DATE")) @db.Date
+  shipping_date  DateTime? @db.Date
+  is_shipped     Boolean   @default(false)
+  amount_payable Int
+  shipping_cost  Int
+  customers      customers @relation(fields: [customer_id], references: [customer_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_orders_customers")
+  stk            stk       @relation(fields: [payment_id], references: [payment_id], onDelete: NoAction, onUpdate: NoAction, map: "fk_orders_stk")
+  cart           cart[]
+}
+
+model products {
+  product_id    Int        @id @default(autoincrement())
+  product_name  String     @unique @db.VarChar(50)
+  price         Int
+  price_type    String     @db.VarChar(50)
+  category      String     @db.VarChar(50)
+  stock         Int
+  image         String     @db.VarChar(255)
+  creation_date DateTime   @default(dbgenerated("CURRENT_DATE")) @db.Date
+  cart          cart[]
+  favorites     favorites?
+}
+
+model stk {
+  payment_id        Int      @id @default(autoincrement())
+  merchantrequestid String   @db.VarChar(100)
+  checkoutrequestid String   @unique @db.VarChar(100)
+  resultcode        Int
+  resultdesc        String   @db.VarChar(255)
+  creation_date     DateTime @default(dbgenerated("CURRENT_DATE")) @db.Date
+  callbackmetadata  Json     @db.Json
+  orders            orders[]
+}
+
+enum status {
+  success
+  pending
+  failed
+}

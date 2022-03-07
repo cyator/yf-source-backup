@@ -1,0 +1,46 @@
+version: '3'
+services:
+  client:
+    image: library/yf-client-nginx-dev:1.0
+    restart: unless-stopped
+    ports:
+      - 3000:3000
+    depends_on:
+      - server
+    volumes:
+      - ./client/:/usr/src/client
+      - /usr/src/client/node_modules
+  server:
+    image: library/yf-api-server-dev:1.4
+    restart: unless-stopped
+    ports:
+      - 5000:5000
+    depends_on:
+      - postgres
+      - redis
+    env_file:
+      - ./server/.env
+    volumes:
+      - ./server:/usr/src/server
+      - /usr/src/server/node_modules
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    ports:
+      - 6379:6379
+    volumes:
+      - redis-data:/data
+  postgres:
+    image: postgres:alpine
+    restart: unless-stopped
+    env_file:
+      - pg.env
+    ports:
+      - 5432:5432
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local
